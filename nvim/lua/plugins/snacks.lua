@@ -17,7 +17,7 @@ return {
     --       sections = {},
     --     },
     statuscolumn = {
-      enabled = true,
+      enabled = false,
       left = { "mark", "sign" },
       right = { "fold", "git" },
       folds = {
@@ -157,10 +157,83 @@ return {
             "**/dist/**",
             "**/build/**",
             "**/.e2e-results/**",
+            "**/.agents/**",
           },
           sort_lastused = true,
         },
+        grep = {
+          hidden = true,
+          ignored = true,
+          exclude = {
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/.DS_Store",
+            "**/dist/**",
+            "**/build/**",
+          },
+        },
       },
+      actions = {
+        sidekick_send = function(...)
+          return require("sidekick.cli.picker.snacks").send(...)
+        end,
+      },
+      win = {
+        input = {
+          keys = {
+            ["<C-->"] = {
+              "sidekick_send",
+              mode = { "n", "i" },
+            },
+          },
+        },
+      },
+    },
+  },
+  keys = {
+    {
+      "<leader>/",
+      function()
+        Snacks.picker.lines()
+      end,
+      mode = { "n" },
+      noremap = true,
+      desc = "Buffer Lines",
+    },
+    {
+      "gd",
+      "<cmd>lua Snacks.picker.lsp_definitions()<CR>",
+      mode = { "n" },
+      desc = "Definitions",
+      noremap = true,
+    },
+    {
+      "gi",
+      "<cmd>lua Snacks.picker.lsp_implementations()<CR>",
+      mode = { "n" },
+      desc = "Implementations",
+      noremap = true,
+    },
+    {
+      "gr",
+      "<cmd>lua Snacks.picker.lsp_references()<CR>",
+      mode = { "n" },
+      desc = "References",
+      noremap = true,
+    },
+    {
+      "gs",
+      "<cmd>lua Snacks.picker.lsp_symbols()<CR>",
+      mode = { "n" },
+      desc = "Document Symbols",
+      noremap = true,
+    },
+    {
+      "gt",
+      "<cmd>lua Snacks.picker.lsp_type_definitions()<CR>",
+      mode = { "n" },
+      desc = "Type Definitions",
+      noremap = true,
     },
   },
 }

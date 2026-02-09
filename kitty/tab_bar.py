@@ -1,7 +1,8 @@
-# kitty pills tab bar
-# Save as something like kitty_pills_tabbar.py and point kitty to it in kitty.conf
+# kitty lualine-style tab bar — neosolarized theme
 
 import datetime
+import subprocess
+import time
 from kitty.boss import get_boss
 from kitty.fast_data_types import Screen, add_timer
 from kitty.rgb import to_color
@@ -15,32 +16,27 @@ from kitty.tab_bar import (
 )
 
 timer_id = None
+_prev_tab_bg = None
+
+# powerline arrows
+RIGHT_ARROW = "\ue0b0"  # 
+LEFT_ARROW = "\ue0b2"   # 
+# thin lualine-style separators (for same-bg segments)
+THIN_LEFT = "\ue0b3"    # 
+
+# cache for expensive subprocess calls
+_cache = {}
+_CACHE_TTL = 15  # seconds
 
 
-def draw_pill(screen: Screen, text: str, fg_rgb, bg_rgb, default_bg_rgb) -> None:
-    """
-    Draw a filled pill:
-       [ space + text + space ] <space>
-    fg_rgb and bg_rgb must already be converted via as_rgb(...)
-    default_bg_rgb is as_rgb(int(draw_data.default_bg))
-    """
-    # left rounded edge (edge colored like bg, drawn on default background)
-    screen.cursor.fg = bg_rgb
-    screen.cursor.bg = default_bg_rgb
-    screen.draw("")
-
-    # middle filled part (fg on bg)
-    screen.cursor.fg = fg_rgb
-    screen.cursor.bg = bg_rgb
-    screen.draw(f" {text} ")
-
-    # right rounded edge
-    screen.cursor.fg = bg_rgb
-    screen.cursor.bg = default_bg_rgb
-    screen.draw("")
-
-    # spacing between pills
-    screen.draw(" ")
+def _cached_call(key, fn):
+    now = time.monotonic()
+    entry = _cache.get(key)
+    if entry and (now - entry[0]) < _CACHE_TTL:
+        return entry[1]
+    result = fn()
+    _cache[key] = (now, result)
+    return result
 
 
 def draw_tab(
@@ -53,94 +49,225 @@ def draw_tab(
     is_last: bool,
     extra_data: ExtraData,
 ) -> int:
-    global timer_id
+    global timer_id, _prev_tab_bg
     if timer_id is None:
-        # update time/date every 2s
         timer_id = add_timer(_redraw_tab_bar, 2.0, True)
 
-    # compute default bg (used for the pill edges)
-    default_bg = as_rgb(int(draw_data.default_bg))
+    try:
+        default_bg = as_rgb(int(draw_data.default_bg))
 
-    # choose text and colors
-    title = tab.title[:max_title_length] if tab.title else ""
+        # get cwd from the active window, fall back to tab title
+        title = ""
+        boss = get_boss()
+        if boss:
+            for tm in boss.all_tab_managers:
+                for t in tm.tabs:
+                    if t.id == tab.tab_id:
+                        aw = t.active_window
+                        if aw and hasattr(aw, 'cwd_of_child'):
+                            title = aw.cwd_of_child or ""
+                        break
 
-    if tab.is_active:
-        fg = as_rgb(int(draw_data.active_fg))
-        bg = as_rgb(int(draw_data.active_bg))
-    else:
-        fg = as_rgb(int(draw_data.inactive_fg))
-        bg = as_rgb(int(draw_data.inactive_bg))
+        if not title:
+            title = tab.title[:max_title_length] if tab.title else ""
 
-    # draw the tab as a pill
-    draw_pill(screen, title, fg, bg, default_bg)
+        # extract just the folder name
+        if "/" in title:
+            parts = title.rstrip("/").split("/")
+            title = parts[-1] if parts[-1] else parts[-2] if len(parts) > 1 else title
+        title = title.upper()
 
-    # if this was the last tab to be drawn, paint the right-side status
-    if is_last:
-        draw_right_status(draw_data, screen)
+        if tab.is_active:
+            fg = as_rgb(int(draw_data.active_fg))
+            bg = as_rgb(int(draw_data.active_bg))
+        else:
+            fg = as_rgb(int(draw_data.inactive_fg))
+            bg = as_rgb(int(draw_data.inactive_bg))
+
+        # bridging arrow between tabs
+        if index > 0 and _prev_tab_bg is not None:
+            screen.cursor.fg = _prev_tab_bg
+            screen.cursor.bg = bg
+            screen.draw(RIGHT_ARROW)
+
+        # tab text
+        screen.cursor.fg = fg
+        screen.cursor.bg = bg
+        screen.draw(f" {title} ")
+
+        _prev_tab_bg = bg
+
+        # closing arrow after last tab + right status
+        if is_last:
+            screen.cursor.fg = bg
+            screen.cursor.bg = default_bg
+            screen.draw(RIGHT_ARROW)
+            try:
+                draw_right_status(draw_data, screen)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
     return screen.cursor.x
 
 
 def draw_right_status(draw_data: DrawData, screen: Screen) -> None:
-    # reset any terminal attributes that might be lingering
     draw_attributed_string(Formatter.reset, screen)
 
     default_bg = as_rgb(int(draw_data.default_bg))
-    inactive_fg_rgb = as_rgb(int(draw_data.inactive_fg))
-    inactive_bg_rgb = as_rgb(int(draw_data.inactive_bg))
 
     cells = create_cells()
+    if not cells:
+        return
 
-    # If there isn't enough room, drop oldest cells (leftmost)
-    def pill_width_for_text(s: str) -> int:
-        # approximate width in characters:
-        # left edge (1) + " " (1) + text (len) + " " (1) + right edge (1) + trailing space (1)
-        return len(s) + 5
+    # resolve colors for each cell
+    resolved = []
+    for c in cells:
+        try:
+            fg_rgb = as_rgb(int(to_color(c.get("color", "#586e75"))))
+        except Exception:
+            fg_rgb = as_rgb(int(draw_data.inactive_fg))
+        try:
+            bg_rgb = as_rgb(int(to_color(c.get("bg", "#002b36"))))
+        except Exception:
+            bg_rgb = as_rgb(int(draw_data.inactive_bg))
+        text = f"{(c.get('icon') or '')}{c['text']}"
+        resolved.append((text, fg_rgb, bg_rgb))
 
-    while True:
-        if not cells:
-            return
-        total = sum(pill_width_for_text((c.get("icon", "") or "") + c["text"]) for c in cells)
+    # width calc: first segment = arrow(1) + space + text + space
+    # same-bg segments use thin sep(1) instead of arrow
+    # different-bg segments use arrow(1)
+    total = 0
+    for i, (t, _, bg) in enumerate(resolved):
+        total += len(t) + 3  # sep/arrow + space + text + space
+
+    # drop leftmost cells if not enough room
+    while resolved:
         padding = screen.columns - screen.cursor.x - total
         if padding >= 0:
             break
-        cells = cells[1:]
+        dropped = resolved.pop(0)
+        total -= (len(dropped[0]) + 3)
 
-    # pad between tabs and status pills
-    if padding:
+    if not resolved:
+        return
+
+    # push to far right
+    padding = screen.columns - screen.cursor.x - total
+    if padding > 0:
         screen.draw(" " * padding)
 
-    for c in cells:
-        # prefer a color specified in the cell, otherwise use inactive_fg
-        if c.get("color"):
-            try:
-                color_int = to_color(c.get("color"))
-                fg_rgb = as_rgb(int(color_int))
-            except Exception:
-                fg_rgb = inactive_fg_rgb
+    # draw connected right-side segments
+    sep_color = as_rgb(int(to_color("#465a61")))  # muted separator color
+    for i, (text, fg_rgb, bg_rgb) in enumerate(resolved):
+        if i == 0:
+            # first: powerline arrow from default bg
+            screen.cursor.fg = bg_rgb
+            screen.cursor.bg = default_bg
+            screen.draw(LEFT_ARROW)
         else:
-            fg_rgb = inactive_fg_rgb
+            prev_bg = resolved[i - 1][2]
+            if prev_bg == bg_rgb:
+                # same bg: thin separator
+                screen.cursor.fg = sep_color
+                screen.cursor.bg = bg_rgb
+                screen.draw(THIN_LEFT)
+            else:
+                # different bg: powerline arrow
+                screen.cursor.fg = bg_rgb
+                screen.cursor.bg = prev_bg
+                screen.draw(LEFT_ARROW)
 
-        bg_rgb = inactive_bg_rgb
-        text = f"{(c.get('icon') or '')}{c['text']}"
-        draw_pill(screen, text, fg_rgb, bg_rgb, default_bg)
+        screen.cursor.fg = fg_rgb
+        screen.cursor.bg = bg_rgb
+        screen.draw(f" {text} ")
 
 
 def create_cells():
-    return [c for c in [get_date(), get_time()] if c is not None]
+    return [c for c in [
+        _cached_call("spotify", _get_spotify),
+        _cached_call("battery", _get_battery),
+        get_date(),
+        get_time(),
+    ] if c is not None]
+
+
+def _get_spotify():
+    try:
+        script = '''
+        tell application "System Events"
+            if not (exists process "Spotify") then return "NOT_RUNNING"
+        end tell
+        tell application "Spotify"
+            if player state is not playing then return "NOT_PLAYING"
+            return (artist of current track) & " - " & (name of current track)
+        end tell
+        '''
+        result = subprocess.run(
+            ["osascript", "-e", script],
+            capture_output=True, text=True, timeout=2
+        )
+        song = result.stdout.strip()
+        if song in ("NOT_RUNNING", "NOT_PLAYING") or not song:
+            return None
+        if len(song) > 40:
+            song = song[:37] + "..."
+        return {"icon": "󰎆 ", "color": "#859900", "bg": "#002b36", "text": song}
+    except Exception:
+        return None
+
+
+def _get_battery():
+    try:
+        result = subprocess.run(
+            ["pmset", "-g", "batt"],
+            capture_output=True, text=True, timeout=1
+        )
+        output = result.stdout
+        if "%" not in output:
+            return None
+
+        percent_str = output.split("\t")[1].split(";")[0].strip()
+        percent = int(percent_str.replace("%", ""))
+
+        charging = ("charging" in output.lower() or "charged" in output.lower()) and "discharging" not in output.lower()
+        if charging:
+            icon = "󰂄 "
+            color = "#859900"
+        elif percent >= 80:
+            icon = "󰁹 "
+            color = "#859900"
+        elif percent >= 60:
+            icon = "󰂀 "
+            color = "#2aa198"
+        elif percent >= 40:
+            icon = "󰁾 "
+            color = "#b58900"
+        elif percent >= 20:
+            icon = "󰁼 "
+            color = "#cb4b16"
+        else:
+            icon = "󰁺 "
+            color = "#dc322f"
+
+        return {"icon": icon, "color": color, "bg": "#002b36", "text": f"{percent}%"}
+    except Exception:
+        return None
 
 
 def get_time():
-    now = datetime.datetime.now().strftime("%H:%M")
-    return {"icon": " ", "color": "#669bbc", "text": now}
+    now = datetime.datetime.now().strftime("%I:%M %p")
+    return {"icon": " ", "color": "#268bd2", "bg": "#073642", "text": now}
 
 
 def get_date():
     today = datetime.date.today()
+    day_str = today.strftime("%b %e").upper()
     if today.weekday() < 5:
-        return {"icon": "󰃵 ", "color": "#2a9d8f", "text": today.strftime("%b %e")}
+        return {"icon": "󰃵 ", "color": "#586e75", "bg": "#002b36", "text": day_str}
     else:
-        return {"icon": "󰧓 ", "color": "#f2e8cf", "text": today.strftime("%b %e")}
+        return {"icon": "󰧓 ", "color": "#6c71c4", "bg": "#002b36", "text": day_str}
 
 
 def _redraw_tab_bar(timer_id):

@@ -1,6 +1,6 @@
 return {
   "ph1losof/ecolog.nvim",
-  branch = "beta",
+  branch = "v1",
   -- Optional: you can add some keybindings
   -- (I personally use lspsaga so check out lspsaga integration or lsp integration for a smoother experience without separate keybindings)
   keys = {
@@ -15,7 +15,7 @@ return {
       -- WARNING: for both cmp integrations see readme section below
       nvim_cmp = false, -- If you dont plan to use nvim_cmp set to false, enabled by default
       -- If you are planning to use blink cmp uncomment this line
-      -- blink_cmp = true,
+      blink_cmp = true,
     },
     -- Enables shelter mode for sensitive values
     shelter = {
@@ -33,7 +33,7 @@ return {
         },
         mask_char = "*", -- Character used for masking
         mask_length = nil, -- Optional: fixed length for masked portion (defaults to value length)
-        skip_comments = true, -- Skip masking comment lines in environment files (default: false)
+        skip_comments = false, -- Skip masking comment lines in environment files (default: false)
       },
       modules = {
         cmp = true, -- Enabled to mask values in completion

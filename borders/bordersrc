@@ -9,4 +9,4 @@ options=(
   width=6
 )
 
-borders "${options[@]}"
+# borders "${options[@]}"

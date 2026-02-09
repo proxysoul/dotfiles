@@ -16,5 +16,7 @@ result
 
 # Ignore Home Manager state (if applicable)
 .hmstate
+prevConf
+config_nvim
 
 

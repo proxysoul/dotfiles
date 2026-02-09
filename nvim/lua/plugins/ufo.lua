@@ -1,5 +1,6 @@
 return {
   "kevinhwang91/nvim-ufo",
+  lazy = false,
   event = "BufReadPost",
   dependencies = {
     "kevinhwang91/promise-async",
@@ -36,9 +37,9 @@ return {
     end,
 
     -- Provider priority
-    provider_selector = function(bufnr, filetype, buftype)
-      return { "treesitter", "indent" }
-    end,
+    -- provider_selector = function(bufnr, filetype, buftype)
+    --   return { "treesitter", "indent" }
+    -- end,
 
     -- Auto-close imports and comments when opening files
     close_fold_kinds_for_ft = {
@@ -81,8 +82,8 @@ return {
 
     -- Ensure fillchars are set for fold icons
     vim.opt.fillchars = {
-      foldopen = "",
-      foldclose = "",
+      -- foldopen = "",
+      -- foldclose = "",
       fold = " ",
       foldsep = " ",
       diff = "╱",
