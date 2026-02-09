@@ -19,14 +19,58 @@ timer_id = None
 _prev_tab_bg = None
 
 # powerline arrows
-RIGHT_ARROW = "\ue0b0"  # 
-LEFT_ARROW = "\ue0b2"   # 
-# thin lualine-style separators (for same-bg segments)
-THIN_LEFT = "\ue0b3"    # 
+RIGHT_ARROW = "\ue0b0"
+LEFT_ARROW = "\ue0b2"
+THIN_LEFT = "\ue0b3"
+
+# folder icons (nerdfonts)
+FOLDER_ICONS = {
+    "dotfiles": "󰝒",
+    "config": "󰒓",
+    "nvim": "󱘎",
+    "desktop": "󰪥",
+    "documents": "󰈙",
+    "downloads": "󰉍",
+    "pictures": "󰉏",
+    "music": "󰎵",
+    "projects": "",
+    "src": "",
+    # dev projects
+    "dev": "󰲋",
+    "ac-cloud": "󰊢",
+    "fe": "󰌝",
+    "ac-mf": "󰊣",
+    "ai-mgmt": "󰠅",
+    "be": "󰮯",
+    "charonai-v": "󰊢",
+    "command-center-backend": "󰮯",
+    "live-view": "󰖵",
+    "sp-ada": "",
+    "sp-app-host": "󰊢",
+    "spa-mcp-be": "󰮯",
+    "video": "󰎞",
+    "frontend": "󰌝",
+    "backend": "󰮯",
+    "api": "󰛢",
+    # config files/folders
+    ".zshrc": "󰘧",
+    ".config": "󰒓",
+    "config": "󰒓",
+    "alacritty": "󰣇",
+    "ghostty": "󰣇",
+    "kitty": "󰣇",
+    "nvim": "󱘎",
+    "starship": "󰺶",
+    "skhd": "⌨",
+    "karabiner": "⌨",
+    "sketchybar": "",
+    "agents": "󰊢",
+    "github-copilot": "󰘦",
+}
 
 # cache for expensive subprocess calls
 _cache = {}
-_CACHE_TTL = 15  # seconds
+_CACHE_TTL = 30  # seconds
 
 
 def _cached_call(key, fn):
@@ -37,6 +81,12 @@ def _cached_call(key, fn):
     result = fn()
     _cache[key] = (now, result)
     return result
+
+
+def get_folder_icon(folder_name):
+    """Return a nice icon for common folders."""
+    folder_lower = folder_name.lower()
+    return FOLDER_ICONS.get(folder_lower, "󰉋")
 
 
 def draw_tab(
@@ -64,7 +114,7 @@ def draw_tab(
                 for t in tm.tabs:
                     if t.id == tab.tab_id:
                         aw = t.active_window
-                        if aw and hasattr(aw, 'cwd_of_child'):
+                        if aw and hasattr(aw, "cwd_of_child"):
                             title = aw.cwd_of_child or ""
                         break
 
@@ -75,13 +125,16 @@ def draw_tab(
         if "/" in title:
             parts = title.rstrip("/").split("/")
             title = parts[-1] if parts[-1] else parts[-2] if len(parts) > 1 else title
-        title = title.upper()
+
+        # get icon for folder
+        icon = get_folder_icon(title)
 
         if tab.is_active:
             fg = as_rgb(int(draw_data.active_fg))
             bg = as_rgb(int(draw_data.active_bg))
         else:
-            fg = as_rgb(int(draw_data.inactive_fg))
+            # dim inactive tabs
+            fg = as_rgb(int(to_color("#52676f")))  # muted foreground
             bg = as_rgb(int(draw_data.inactive_bg))
 
         # bridging arrow between tabs
@@ -90,10 +143,10 @@ def draw_tab(
             screen.cursor.bg = bg
             screen.draw(RIGHT_ARROW)
 
-        # tab text
+        # tab text with icon
         screen.cursor.fg = fg
         screen.cursor.bg = bg
-        screen.draw(f" {title} ")
+        screen.draw(f" {icon} {title} ")
 
         _prev_tab_bg = bg
 
@@ -135,12 +188,8 @@ def draw_right_status(draw_data: DrawData, screen: Screen) -> None:
         text = f"{(c.get('icon') or '')}{c['text']}"
         resolved.append((text, fg_rgb, bg_rgb))
 
-    # width calc: first segment = arrow(1) + space + text + space
-    # same-bg segments use thin sep(1) instead of arrow
-    # different-bg segments use arrow(1)
-    total = 0
-    for i, (t, _, bg) in enumerate(resolved):
-        total += len(t) + 3  # sep/arrow + space + text + space
+    # width calc
+    total = sum(len(t) + 3 for t, _, _ in resolved)
 
     # drop leftmost cells if not enough room
     while resolved:
@@ -159,22 +208,19 @@ def draw_right_status(draw_data: DrawData, screen: Screen) -> None:
         screen.draw(" " * padding)
 
     # draw connected right-side segments
-    sep_color = as_rgb(int(to_color("#465a61")))  # muted separator color
+    sep_color = as_rgb(int(to_color("#465a61")))
     for i, (text, fg_rgb, bg_rgb) in enumerate(resolved):
         if i == 0:
-            # first: powerline arrow from default bg
             screen.cursor.fg = bg_rgb
             screen.cursor.bg = default_bg
             screen.draw(LEFT_ARROW)
         else:
             prev_bg = resolved[i - 1][2]
             if prev_bg == bg_rgb:
-                # same bg: thin separator
                 screen.cursor.fg = sep_color
                 screen.cursor.bg = bg_rgb
                 screen.draw(THIN_LEFT)
             else:
-                # different bg: powerline arrow
                 screen.cursor.fg = bg_rgb
                 screen.cursor.bg = prev_bg
                 screen.draw(LEFT_ARROW)
@@ -186,36 +232,10 @@ def draw_right_status(draw_data: DrawData, screen: Screen) -> None:
 
 def create_cells():
     return [c for c in [
-        _cached_call("spotify", _get_spotify),
         _cached_call("battery", _get_battery),
         get_date(),
         get_time(),
     ] if c is not None]
-
-
-def _get_spotify():
-    try:
-        script = '''
-        tell application "System Events"
-            if not (exists process "Spotify") then return "NOT_RUNNING"
-        end tell
-        tell application "Spotify"
-            if player state is not playing then return "NOT_PLAYING"
-            return (artist of current track) & " - " & (name of current track)
-        end tell
-        '''
-        result = subprocess.run(
-            ["osascript", "-e", script],
-            capture_output=True, text=True, timeout=2
-        )
-        song = result.stdout.strip()
-        if song in ("NOT_RUNNING", "NOT_PLAYING") or not song:
-            return None
-        if len(song) > 40:
-            song = song[:37] + "..."
-        return {"icon": "󰎆 ", "color": "#859900", "bg": "#002b36", "text": song}
-    except Exception:
-        return None
 
 
 def _get_battery():
@@ -233,37 +253,37 @@ def _get_battery():
 
         charging = ("charging" in output.lower() or "charged" in output.lower()) and "discharging" not in output.lower()
         if charging:
-            icon = "󰂄 "
+            icon = "󰢟"
             color = "#859900"
         elif percent >= 80:
-            icon = "󰁹 "
+            icon = "󰢞"
             color = "#859900"
         elif percent >= 60:
-            icon = "󰂀 "
+            icon = "󰢝"
             color = "#2aa198"
         elif percent >= 40:
-            icon = "󰁾 "
+            icon = "󰢜"
             color = "#b58900"
         elif percent >= 20:
-            icon = "󰁼 "
+            icon = "󰢗"
             color = "#cb4b16"
         else:
-            icon = "󰁺 "
+            icon = "󰢘"
             color = "#dc322f"
 
-        return {"icon": icon, "color": color, "bg": "#002b36", "text": f"{percent}%"}
+        return {"icon": f"{icon} ", "color": color, "bg": "#002b36", "text": f"{percent}%"}
     except Exception:
         return None
 
 
 def get_time():
     now = datetime.datetime.now().strftime("%I:%M %p")
-    return {"icon": " ", "color": "#268bd2", "bg": "#073642", "text": now}
+    return {"icon": "󰥔 ", "color": "#268bd2", "bg": "#073642", "text": now}
 
 
 def get_date():
     today = datetime.date.today()
-    day_str = today.strftime("%b %e").upper()
+    day_str = today.strftime("%a %b %d").upper()
     if today.weekday() < 5:
         return {"icon": "󰃵 ", "color": "#586e75", "bg": "#002b36", "text": day_str}
     else:

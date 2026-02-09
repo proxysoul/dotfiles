@@ -9,7 +9,6 @@ return {
       neosolarized.setup({
         style = "dark", -- "dark" or "light"
         transparent = true, -- true/false; Enable this to disable setting the background color
-        dim_inactive = true, -- dims inactive windows
         terminal_colors = true, -- Configure the colors used when opening a `:terminal` in Neovim
         enable_italics = true, -- Italics for different hightlight groups (eg. Statement, Condition, Comment, Include, etc.)
         styles = {
@@ -25,6 +24,11 @@ return {
         -- Add specific hightlight groups
         on_highlights = function(highlights, colors)
           highlights.Include.fg = colors.red -- Using `red` foreground for Includes
+          highlights["FlashLabel"] = { fg = "#00FFFF", bold = true } -- bright cyan text on dark background
+          highlights["NeoTreeTitleBar"] = {
+            bg = "#211d3d",
+            fg = "#00FFFF",
+          }
         end,
       })
 
@@ -39,7 +43,7 @@ return {
       vim.api.nvim_set_hl(0, "DiagnosticUnderlineHint", { undercurl = true, sp = colors.green })
       vim.api.nvim_set_hl(0, "RenderMarkdownCode", { bg = "#211d3d" })
       vim.api.nvim_set_hl(0, "SnacksPickerInputCursorLine", { bg = "#001217" })
-      vim.api.nvim_set_hl(0, "UfoFoldedBg", { bg = "#001217" })
+      vim.api.nvim_set_hl(0, "Folded", { bg = "#1b282b", italic = true, bold = true })
     end,
   },
 }

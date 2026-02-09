@@ -85,3 +85,13 @@ map(
   "<cmd>CodeCompanionActions<cr>",
   { desc = "Code Companion actions", silent = true, noremap = true }
 )
+
+map("n", "<C-o>", function()
+  -- toggle if oil open, otherwise open
+  -- require("oil").open()
+  if vim.bo.filetype == "oil" then
+    require("oil").close()
+  else
+    require("oil").open()
+  end
+end, { desc = "Open Oil file explorer", silent = true, noremap = true })

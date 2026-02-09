@@ -17,7 +17,7 @@ return {
     --       sections = {},
     --     },
     statuscolumn = {
-      enabled = false,
+      enabled = true,
       left = { "mark", "sign" },
       right = { "fold", "git" },
       folds = {
