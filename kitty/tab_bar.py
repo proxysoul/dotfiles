@@ -1,8 +1,12 @@
-# kitty lualine-style tab bar — neosolarized theme
+"""
+kitty tab bar — proxySoul Coffee theme
+Rounded pill-style tabs with right-aligned status cells.
+"""
 
 import datetime
 import subprocess
 import time
+
 from kitty.boss import get_boss
 from kitty.fast_data_types import Screen, add_timer
 from kitty.rgb import to_color
@@ -15,80 +19,82 @@ from kitty.tab_bar import (
     draw_attributed_string,
 )
 
-timer_id = None
-_prev_tab_bg = None
+# ── Rounded glyphs ───────────────────────────────────────────────
+LEFT_ROUND = "\ue0b6"   # 
+RIGHT_ROUND = "\ue0b4"  # 
+SEPARATOR = "│"
 
-# powerline arrows
-RIGHT_ARROW = "\ue0b0"
-LEFT_ARROW = "\ue0b2"
-THIN_LEFT = "\ue0b3"
+# ── Coffee palette (synced with SoulForge proxysoul-coffee) ──────
+AMBER = "#de7c00"
+ORANGE = "#e65f2a"
+GOLD = "#c8944a"
+DIM = "#2e2010"
+BG_PILL = "#1a1510"
+TEXT = "#e7e7ee"
+TEXT_MUTED = "#5c5a6e"
+TEXT_SECONDARY = "#8e8ca1"
 
-# folder icons (nerdfonts)
+# ── Folder icons (nerd fonts) ────────────────────────────────────
 FOLDER_ICONS = {
-    "dotfiles": "󰝒",
-    "config": "󰒓",
-    "nvim": "󱘎",
-    "desktop": "󰪥",
-    "documents": "󰈙",
-    "downloads": "󰉍",
-    "pictures": "󰉏",
-    "music": "󰎵",
-    "projects": "",
-    "src": "",
-    # dev projects
-    "dev": "󰲋",
-    "ac-cloud": "󰊢",
-    "fe": "󰌝",
-    "ac-mf": "󰊣",
-    "ai-mgmt": "󰠅",
-    "be": "󰮯",
-    "charonai-v": "󰊢",
-    "command-center-backend": "󰮯",
-    "live-view": "󰖵",
-    "sp-ada": "",
-    "sp-app-host": "󰊢",
-    "spa-mcp-be": "󰮯",
-    "video": "󰎞",
-    "frontend": "󰌝",
-    "backend": "󰮯",
-    "api": "󰛢",
-    # config files/folders
-    ".zshrc": "󰘧",
-    ".config": "󰒓",
-    "config": "󰒓",
-    "alacritty": "󰣇",
-    "ghostty": "󰣇",
-    "kitty": "󰣇",
-    "nvim": "󱘎",
-    "starship": "󰺶",
-    "skhd": "⌨",
-    "karabiner": "⌨",
-    "sketchybar": "",
-    "agents": "󰊢",
+    "dotfiles": "󰝒", "config": "󰒓", "nvim": "󱘎", "desktop": "󰪥",
+    "documents": "󰈙", "downloads": "󰉍", "pictures": "󰉏", "music": "󰎵",
+    "projects": "", "src": "", "dev": "󰲋", "proxy": "",
+    "ac-cloud": "󰊢", "fe": "󰌝", "ac-mf": "󰊣", "ai-mgmt": "󰠅",
+    "be": "󰮯", "charonai-v": "󰊢", "command-center-backend": "󰮯",
+    "live-view": "󰖵", "sp-ada": "", "sp-app-host": "󰊢",
+    "spa-mcp-be": "󰮯", "video": "󰎞", "frontend": "󰌝", "backend": "󰮯",
+    "api": "󰛢", ".zshrc": "󰘧", ".config": "󰒓", "alacritty": "󰣇",
+    "ghostty": "󰣇", "kitty": "󰣇", "starship": "󰺶", "skhd": "⌨",
+    "karabiner": "⌨", "sketchybar": "", "agents": "󰊢",
     "github-copilot": "󰘦",
 }
 
-# cache for expensive subprocess calls
-_cache = {}
-_CACHE_TTL = 30  # seconds
+# ── Subprocess cache ─────────────────────────────────────────────
+_cache: dict[str, tuple[float, object]] = {}
+_CACHE_TTL = 30
+
+_timer_id = None
 
 
-def _cached_call(key, fn):
+def _cached(key, fn):
     now = time.monotonic()
-    entry = _cache.get(key)
-    if entry and (now - entry[0]) < _CACHE_TTL:
-        return entry[1]
-    result = fn()
-    _cache[key] = (now, result)
-    return result
+    hit = _cache.get(key)
+    if hit and (now - hit[0]) < _CACHE_TTL:
+        return hit[1]
+    val = fn()
+    _cache[key] = (now, val)
+    return val
 
 
-def get_folder_icon(folder_name):
-    """Return a nice icon for common folders."""
-    folder_lower = folder_name.lower()
-    return FOLDER_ICONS.get(folder_lower, "󰉋")
+def _rgb(hex_color: str) -> int:
+    return as_rgb(int(to_color(hex_color)))
 
 
+def _icon_for(name: str) -> str:
+    return FOLDER_ICONS.get(name.lower(), "󰉋")
+
+
+def _tab_title(tab: TabBarData, max_len: int) -> str:
+    """Resolve tab title from active window cwd, fallback to tab title."""
+    boss = get_boss()
+    if boss:
+        for tm in boss.all_tab_managers:
+            for t in tm.tabs:
+                if t.id == tab.tab_id:
+                    aw = t.active_window
+                    if aw and hasattr(aw, "cwd_of_child"):
+                        cwd = aw.cwd_of_child
+                        if cwd:
+                            parts = cwd.rstrip("/").split("/")
+                            return parts[-1] or (parts[-2] if len(parts) > 1 else cwd)
+    title = tab.title or ""
+    if "/" in title:
+        parts = title.rstrip("/").split("/")
+        title = parts[-1] or (parts[-2] if len(parts) > 1 else title)
+    return title[:max_len]
+
+
+# ── Main draw ────────────────────────────────────────────────────
 def draw_tab(
     draw_data: DrawData,
     screen: Screen,
@@ -99,105 +105,80 @@ def draw_tab(
     is_last: bool,
     extra_data: ExtraData,
 ) -> int:
-    global timer_id, _prev_tab_bg
-    if timer_id is None:
-        timer_id = add_timer(_redraw_tab_bar, 2.0, True)
+    global _timer_id
+    if _timer_id is None:
+        _timer_id = add_timer(_tick, 2.0, True)
 
     try:
         default_bg = as_rgb(int(draw_data.default_bg))
-
-        # get cwd from the active window, fall back to tab title
-        title = ""
-        boss = get_boss()
-        if boss:
-            for tm in boss.all_tab_managers:
-                for t in tm.tabs:
-                    if t.id == tab.tab_id:
-                        aw = t.active_window
-                        if aw and hasattr(aw, "cwd_of_child"):
-                            title = aw.cwd_of_child or ""
-                        break
-
-        if not title:
-            title = tab.title[:max_title_length] if tab.title else ""
-
-        # extract just the folder name
-        if "/" in title:
-            parts = title.rstrip("/").split("/")
-            title = parts[-1] if parts[-1] else parts[-2] if len(parts) > 1 else title
-
-        # get icon for folder
-        icon = get_folder_icon(title)
+        title = _tab_title(tab, max_title_length)
+        icon = _icon_for(title)
 
         if tab.is_active:
-            fg = as_rgb(int(draw_data.active_fg))
-            bg = as_rgb(int(draw_data.active_bg))
+            fg = _rgb("#000000")
+            bg = _rgb(AMBER)
         else:
-            # dim inactive tabs
-            fg = as_rgb(int(to_color("#52676f")))  # muted foreground
-            bg = as_rgb(int(draw_data.inactive_bg))
+            fg = _rgb(TEXT_MUTED)
+            bg = _rgb(BG_PILL)
 
-        # bridging arrow between tabs
-        if index > 0 and _prev_tab_bg is not None:
-            screen.cursor.fg = _prev_tab_bg
-            screen.cursor.bg = bg
-            screen.draw(RIGHT_ARROW)
+        # spacing between tabs
+        if index > 0:
+            screen.cursor.bg = default_bg
+            screen.draw(" ")
 
-        # tab text with icon
+        # left rounded cap ─ pill fg on transparent bg
+        screen.cursor.fg = bg
+        screen.cursor.bg = default_bg
+        screen.draw(LEFT_ROUND)
+
+        # tab content
         screen.cursor.fg = fg
         screen.cursor.bg = bg
-        screen.draw(f" {icon} {title} ")
+        screen.draw(f" {icon}  {title} ")
 
-        _prev_tab_bg = bg
+        # right rounded cap
+        screen.cursor.fg = bg
+        screen.cursor.bg = default_bg
+        screen.draw(RIGHT_ROUND)
 
-        # closing arrow after last tab + right status
         if is_last:
-            screen.cursor.fg = bg
-            screen.cursor.bg = default_bg
-            screen.draw(RIGHT_ARROW)
-            try:
-                draw_right_status(draw_data, screen)
-            except Exception:
-                pass
+            _draw_status(draw_data, screen)
     except Exception:
         pass
 
     return screen.cursor.x
 
 
-def draw_right_status(draw_data: DrawData, screen: Screen) -> None:
+# ── Right-aligned status (rounded pill) ──────────────────────────
+def _draw_status(draw_data: DrawData, screen: Screen) -> None:
     draw_attributed_string(Formatter.reset, screen)
-
     default_bg = as_rgb(int(draw_data.default_bg))
+    pill_bg = _rgb(BG_PILL)
 
-    cells = create_cells()
+    cells = [c for c in [
+        _cached("battery", _battery_cell),
+        _date_cell(),
+        _time_cell(),
+    ] if c]
+
     if not cells:
         return
 
-    # resolve colors for each cell
     resolved = []
     for c in cells:
-        try:
-            fg_rgb = as_rgb(int(to_color(c.get("color", "#586e75"))))
-        except Exception:
-            fg_rgb = as_rgb(int(draw_data.inactive_fg))
-        try:
-            bg_rgb = as_rgb(int(to_color(c.get("bg", "#002b36"))))
-        except Exception:
-            bg_rgb = as_rgb(int(draw_data.inactive_bg))
-        text = f"{(c.get('icon') or '')}{c['text']}"
-        resolved.append((text, fg_rgb, bg_rgb))
+        fg = _rgb(c.get("color", TEXT_SECONDARY))
+        text = f"{c.get('icon', '')}{c['text']}"
+        resolved.append((text, fg))
 
-    # width calc
-    total = sum(len(t) + 3 for t, _, _ in resolved)
+    # total width: left_cap + content + separators + right_cap
+    inner = sum(len(t) + 2 for t, _ in resolved) + (len(resolved) - 1)
+    total = inner + 2  # round caps
 
-    # drop leftmost cells if not enough room
-    while resolved:
-        padding = screen.columns - screen.cursor.x - total
-        if padding >= 0:
-            break
-        dropped = resolved.pop(0)
-        total -= (len(dropped[0]) + 3)
+    # drop cells that don't fit
+    while resolved and (screen.columns - screen.cursor.x - total) < 1:
+        resolved.pop(0)
+        inner = sum(len(t) + 2 for t, _ in resolved) + max(0, len(resolved) - 1)
+        total = inner + 2
 
     if not resolved:
         return
@@ -205,91 +186,71 @@ def draw_right_status(draw_data: DrawData, screen: Screen) -> None:
     # push to far right
     padding = screen.columns - screen.cursor.x - total
     if padding > 0:
+        screen.cursor.bg = default_bg
         screen.draw(" " * padding)
 
-    # draw connected right-side segments
-    sep_color = as_rgb(int(to_color("#465a61")))
-    for i, (text, fg_rgb, bg_rgb) in enumerate(resolved):
-        if i == 0:
-            screen.cursor.fg = bg_rgb
-            screen.cursor.bg = default_bg
-            screen.draw(LEFT_ARROW)
-        else:
-            prev_bg = resolved[i - 1][2]
-            if prev_bg == bg_rgb:
-                screen.cursor.fg = sep_color
-                screen.cursor.bg = bg_rgb
-                screen.draw(THIN_LEFT)
-            else:
-                screen.cursor.fg = bg_rgb
-                screen.cursor.bg = prev_bg
-                screen.draw(LEFT_ARROW)
+    # left round cap
+    screen.cursor.fg = pill_bg
+    screen.cursor.bg = default_bg
+    screen.draw(LEFT_ROUND)
 
-        screen.cursor.fg = fg_rgb
-        screen.cursor.bg = bg_rgb
+    # cells inside the pill
+    sep_fg = _rgb(DIM)
+    for i, (text, fg) in enumerate(resolved):
+        if i > 0:
+            screen.cursor.fg = sep_fg
+            screen.cursor.bg = pill_bg
+            screen.draw(SEPARATOR)
+        screen.cursor.fg = fg
+        screen.cursor.bg = pill_bg
         screen.draw(f" {text} ")
 
-
-def create_cells():
-    return [c for c in [
-        _cached_call("battery", _get_battery),
-        get_date(),
-        get_time(),
-    ] if c is not None]
+    # right round cap
+    screen.cursor.fg = pill_bg
+    screen.cursor.bg = default_bg
+    screen.draw(RIGHT_ROUND)
 
 
-def _get_battery():
+# ── Status cells ─────────────────────────────────────────────────
+def _battery_cell():
     try:
-        result = subprocess.run(
-            ["pmset", "-g", "batt"],
-            capture_output=True, text=True, timeout=1
-        )
-        output = result.stdout
-        if "%" not in output:
+        out = subprocess.run(
+            ["pmset", "-g", "batt"], capture_output=True, text=True, timeout=1
+        ).stdout
+        if "%" not in out:
             return None
 
-        percent_str = output.split("\t")[1].split(";")[0].strip()
-        percent = int(percent_str.replace("%", ""))
+        pct = int(out.split("\t")[1].split(";")[0].strip().replace("%", ""))
+        charging = "charging" in out.lower() and "discharging" not in out.lower()
 
-        charging = ("charging" in output.lower() or "charged" in output.lower()) and "discharging" not in output.lower()
         if charging:
-            icon = "󰢟"
-            color = "#859900"
-        elif percent >= 80:
-            icon = "󰢞"
-            color = "#859900"
-        elif percent >= 60:
-            icon = "󰢝"
-            color = "#2aa198"
-        elif percent >= 40:
-            icon = "󰢜"
-            color = "#b58900"
-        elif percent >= 20:
-            icon = "󰢗"
-            color = "#cb4b16"
-        else:
-            icon = "󰢘"
-            color = "#dc322f"
-
-        return {"icon": f"{icon} ", "color": color, "bg": "#002b36", "text": f"{percent}%"}
+            return {"icon": "󰢟 ", "color": GOLD, "text": f"{pct}%"}
+        if pct >= 80:
+            return {"icon": "󰢞 ", "color": GOLD, "text": f"{pct}%"}
+        if pct >= 60:
+            return {"icon": "󰢝 ", "color": AMBER, "text": f"{pct}%"}
+        if pct >= 40:
+            return {"icon": "󰢜 ", "color": AMBER, "text": f"{pct}%"}
+        if pct >= 20:
+            return {"icon": "󰢗 ", "color": ORANGE, "text": f"{pct}%"}
+        return {"icon": "󰢘 ", "color": ORANGE, "text": f"{pct}%"}
     except Exception:
         return None
 
 
-def get_time():
+def _time_cell():
     now = datetime.datetime.now().strftime("%I:%M %p")
-    return {"icon": "󰥔 ", "color": "#268bd2", "bg": "#073642", "text": now}
+    return {"icon": "󰥔 ", "color": AMBER, "text": now}
 
 
-def get_date():
+def _date_cell():
     today = datetime.date.today()
-    day_str = today.strftime("%a %b %d").upper()
-    if today.weekday() < 5:
-        return {"icon": "󰃵 ", "color": "#586e75", "bg": "#002b36", "text": day_str}
-    else:
-        return {"icon": "󰧓 ", "color": "#6c71c4", "bg": "#002b36", "text": day_str}
+    label = today.strftime("%a %b %d").upper()
+    color = GOLD if today.weekday() >= 5 else TEXT_SECONDARY
+    icon = "󰧓 " if today.weekday() >= 5 else "󰃵 "
+    return {"icon": icon, "color": color, "text": label}
 
 
-def _redraw_tab_bar(timer_id):
+def _tick(timer_id):
     for tm in get_boss().all_tab_managers:
         tm.mark_tab_bar_dirty()

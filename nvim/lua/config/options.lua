@@ -4,4 +4,4 @@
 vim.opt.relativenumber = false
 vim.opt.listchars:remove("trail")
 vim.g.gitblame_display_virtual_text = 0
-vim.opt.wrap = false
+vim.opt.wrap = true
