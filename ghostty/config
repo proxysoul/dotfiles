@@ -1,16 +1,146 @@
+# ========== FONT ==========
 font-family = JetBrains Mono
-
-theme = Catppuccin Mocha
-
-background-opacity = 0.8
-background-blur = true
-background = #000000
-
-window-title-font-family = Ubuntu NerdFont
-macos-titlebar-style = tabs
-font-thicken-strength = 50
-
-font-family = JetBrains Mono 
 font-size = 16
 font-style = Medium
 font-style-bold = Bold
+font-thicken = true
+font-thicken-strength = 50
+adjust-cell-height = 30%
+adjust-underline-position = 2
+adjust-underline-thickness = 50%
+
+# ========== THEME ==========
+theme = kanagawa-wave
+
+# ========== TRANSPARENCY ==========
+background-opacity = 0.98
+background-blur = true
+
+# ========== CURSOR ==========
+cursor-style = block
+cursor-style-blink = true
+cursor-opacity = 0.9
+
+# ========== SCROLLBACK ==========
+scrollback-limit = 10000000
+
+# ========== BEHAVIOR ==========
+shell-integration = detect
+shell-integration-features = cursor,sudo,title
+mouse-hide-while-typing = true
+copy-on-select = true
+confirm-close-surface = false
+quit-after-last-window-closed = true
+
+# ========== WINDOW ==========
+window-padding-x = 0
+window-padding-y = 0
+window-padding-balance = true
+window-padding-color = extend
+window-inherit-working-directory = true
+split-inherit-working-directory = true
+tab-inherit-working-directory = true
+unfocused-split-opacity = 0.8
+window-decoration = auto
+window-theme = auto
+
+# ========== MACOS ==========
+macos-titlebar-style = tabs
+macos-option-as-alt = true
+macos-window-shadow = true
+
+# ========== KEYBINDS ==========
+# split management (like nvim splits)
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+
+# navigate splits
+keybind = cmd+h=goto_split:left
+keybind = cmd+j=goto_split:bottom
+keybind = cmd+k=goto_split:top
+keybind = cmd+l=goto_split:right
+
+# resize splits
+keybind = cmd+shift+h=resize_split:left,10
+keybind = cmd+shift+l=resize_split:right,10
+keybind = cmd+shift+k=resize_split:up,10
+keybind = cmd+shift+j=resize_split:down,10
+
+# zoom split (like tmux prefix+z)
+keybind = cmd+shift+z=toggle_split_zoom
+
+# quick terminal (like quake)
+keybind = global:cmd+grave_accent=toggle_quick_terminal
+# ========== FONT ==========
+font-family = JetBrains Mono
+font-size = 16
+font-style = Medium
+font-style-bold = Bold
+font-thicken = true
+font-thicken-strength = 50
+adjust-cell-height = 30%
+adjust-underline-position = 2
+adjust-underline-thickness = 50%
+
+# ========== THEME ==========
+theme = kanagawa-wave
+
+# ========== TRANSPARENCY ==========
+background-opacity = 0.98
+background-blur = true
+
+# ========== CURSOR ==========
+cursor-style = block
+cursor-style-blink = true
+cursor-opacity = 0.9
+
+# ========== SCROLLBACK ==========
+scrollback-limit = 10000000
+
+# ========== BEHAVIOR ==========
+shell-integration = detect
+shell-integration-features = cursor,sudo,title
+mouse-hide-while-typing = true
+copy-on-select = true
+confirm-close-surface = false
+quit-after-last-window-closed = true
+
+# ========== WINDOW ==========
+window-padding-x = 0
+window-padding-y = 0
+window-padding-balance = true
+window-padding-color = extend
+window-inherit-working-directory = true
+split-inherit-working-directory = true
+tab-inherit-working-directory = true
+unfocused-split-opacity = 0.8
+window-decoration = auto
+window-theme = auto
+
+# ========== MACOS ==========
+macos-titlebar-style = tabs
+macos-option-as-alt = true
+macos-window-shadow = true
+
+# ========== KEYBINDS ==========
+# split management (like nvim splits)
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+
+# navigate splits
+keybind = cmd+h=goto_split:left
+keybind = cmd+j=goto_split:bottom
+keybind = cmd+k=goto_split:top
+keybind = cmd+l=goto_split:right
+
+# resize splits
+keybind = cmd+shift+h=resize_split:left,10
+keybind = cmd+shift+l=resize_split:right,10
+keybind = cmd+shift+k=resize_split:up,10
+keybind = cmd+shift+j=resize_split:down,10
+
+# zoom split (like tmux prefix+z)
+keybind = cmd+shift+z=toggle_split_zoom
+
+# quick terminal (like quake)
+keybind = global:cmd+grave_accent=toggle_quick_terminal

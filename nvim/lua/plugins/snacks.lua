@@ -1,21 +1,6 @@
 return {
   "folke/snacks.nvim",
   opts = {
-    --     dashboard = {
-    --       preset = {
-    --         header = [[
-    --   ▄███████▄  ▄██████▄  ███    █▄   ▄█   ▄█     ▄████████  ▄██████▄
-    --   ███    ███ ███    ███ ███    ███ ███  ███    ███    ███ ███    ███
-    --   ███    ███ ███    ███ ███    ███ ███▌ ███▌   ███    ███ ███    ███
-    --   ███    ███ ███    ███ ███    ███ ███▌ ███▌  ▄███▄▄▄▄██▀ ███    ███
-    -- ▀█████████▀  ███    ███ ███    ███ ███▌ ███▌ ▀▀███▀▀▀▀▀   ███    ███
-    --   ███        ███    ███ ███    ███ ███  ███  ▀███████████ ███    ███
-    --   ███        ███    ███ ███    ███ ███  ███    ███    ███ ███    ███
-    --  ▄████▀       ▀██████▀  ████████▀  █▀   █▀     ███    ███  ▀██████▀
-    --                                                ███    ███           ]],
-    --       },
-    --       sections = {},
-    --     },
     statuscolumn = {
       enabled = true,
       left = { "mark", "sign" },
@@ -26,6 +11,7 @@ return {
       },
     },
     dashboard = {
+      zindex = 10,
       sections = {
         -- { section = "header" },
         {
@@ -78,20 +64,26 @@ return {
           -- height = 5,
           -- padding = 1,
         },
+
+        {
+          pane = 2,
+          text = " ",
+          padding = math.max(0, math.floor((vim.o.lines - 40) / 2)),
+        },
         function()
           local in_git = Snacks.git.get_root() ~= nil
           local cmds = {
-            -- {
-            --   title = "Status",
-            --   cmd = "gh status",
-            --   -- action = function()
-            --   --   vim.ui.open("https://github.com/notifications")
-            --   -- end,
-            --   key = "n",
-            --   icon = " ",
-            --   height = 10,
-            --   enabled = true,
-            -- },
+            {
+              title = "Status",
+              cmd = "gh status",
+              -- action = function()
+              --   vim.ui.open("https://github.com/notifications")
+              -- end,
+              -- key = "gs",
+              icon = " ",
+              height = 10,
+              enabled = true,
+            },
             -- {
             --   title = "Open Issues",
             --   cmd = "gh issue list -L 3",
@@ -102,16 +94,16 @@ return {
             --   icon = " ",
             --   height = 7,
             -- },
-            {
-              icon = " ",
-              title = "Open PRs",
-              cmd = "gh pr list -L 4",
-              key = "P",
-              action = function()
-                vim.fn.jobstart("gh pr list --web", { detach = true })
-              end,
-              height = 14,
-            },
+            -- {
+            --   icon = " ",
+            --   title = "Open PRs",
+            --   cmd = "gh pr list -L 4",
+            --   key = "P",
+            --   action = function()
+            --     vim.fn.jobstart("gh pr list --web", { detach = true })
+            --   end,
+            --   height = 14,
+            -- },
             -- {
             --   icon = " ",
             --   title = "Git Status",
@@ -130,6 +122,7 @@ return {
             }, cmd)
           end, cmds)
         end,
+
         {
           pane = 2,
           icon = " ",
@@ -146,18 +139,45 @@ return {
       },
     },
     picker = {
+      hidden = true,
+      ignored = true,
+      exclude = {
+        "**/node_modules",
+        "**/.git",
+        "**/.next",
+        "**/.DS_Store",
+        "**/dist",
+        "**/build",
+        "**/.e2e-results",
+        "**/.agents",
+      },
       sources = {
+        explorer = {
+          hidden = true,
+          ignored = true,
+          exclude = {
+            "node_modules",
+            "node_modules",
+            ".git",
+            ".next",
+            ".DS_Store",
+            "dist",
+            "build",
+            ".e2e-results",
+            ".agents",
+          },
+        },
         files = {
           hidden = true,
           exclude = {
-            "**/node_modules/**",
-            "**/.git/**",
-            "**/.next/**",
+            "**/node_modules",
+            "**/.git",
+            "**/.next",
             "**/.DS_Store",
-            "**/dist/**",
-            "**/build/**",
-            "**/.e2e-results/**",
-            "**/.agents/**",
+            "**/dist",
+            "**/build",
+            "**/.e2e-results",
+            "**/.agents",
           },
           sort_lastused = true,
         },
@@ -165,11 +185,11 @@ return {
           hidden = true,
           ignored = true,
           exclude = {
-            "**/node_modules/**",
-            "**/.git/**",
+            "**/node_modules",
+            "**/.git",
             "**/.DS_Store",
-            "**/dist/**",
-            "**/build/**",
+            "**/dist",
+            "**/build",
           },
         },
       },
@@ -188,6 +208,9 @@ return {
           },
         },
       },
+    },
+    explorer = {
+      trash = true,
     },
   },
   keys = {

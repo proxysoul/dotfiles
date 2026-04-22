@@ -2,11 +2,10 @@ return {
   "nvim-lualine/lualine.nvim",
   dependencies = {
     "nvim-tree/nvim-web-devicons",
-    "Tsuzat/NeoSolarized.nvim",
+    "catppuccin/nvim",
     "AndreM222/copilot-lualine",
     "f-person/git-blame.nvim",
   },
-  opts = {},
   opts = function(_, opts)
     local git_blame = require("gitblame")
 
@@ -59,48 +58,43 @@ return {
       "branch",
     })
 
-    local light = require("NeoSolarized.config").is_day()
-    local palette = require("NeoSolarized.colors").dark
-
-    if light then
-      palette = require("NeoSolarized.colors").light
-    end
+    local C = require("catppuccin.palettes").get_palette("mocha")
 
     local theme = {
       normal = {
-        a = { bg = palette.blue, fg = palette.bg0, gui = "bold" },
-        b = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
-        c = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
+        a = { bg = C.blue, fg = C.mantle, gui = "bold" },
+        b = { bg = C.surface0, fg = C.blue },
+        c = { bg = "NONE", fg = C.text },
       },
       insert = {
-        a = { bg = palette.bg_green, fg = palette.bg0, gui = "bold" },
-        b = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
-        c = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
+        a = { bg = C.green, fg = C.mantle, gui = "bold" },
+        b = { bg = C.surface0, fg = C.green },
+        c = { bg = "NONE", fg = C.text },
       },
       visual = {
-        a = { bg = palette.bg_red, fg = palette.bg0, gui = "bold" },
-        b = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
-        c = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
+        a = { bg = C.mauve, fg = C.mantle, gui = "bold" },
+        b = { bg = C.surface0, fg = C.mauve },
+        c = { bg = "NONE", fg = C.text },
       },
       replace = {
-        a = { bg = palette.bg_yellow, fg = palette.bg0, gui = "bold" },
-        b = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
-        c = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
+        a = { bg = C.red, fg = C.mantle, gui = "bold" },
+        b = { bg = C.surface0, fg = C.red },
+        c = { bg = "NONE", fg = C.text },
       },
       command = {
-        a = { bg = palette.blue, fg = palette.bg0, gui = "bold" },
-        b = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
-        c = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
+        a = { bg = C.peach, fg = C.mantle, gui = "bold" },
+        b = { bg = C.surface0, fg = C.peach },
+        c = { bg = "NONE", fg = C.text },
       },
       terminal = {
-        a = { bg = palette.purple, fg = palette.bg0, gui = "bold" },
-        b = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
-        c = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
+        a = { bg = C.green, fg = C.mantle, gui = "bold" },
+        b = { bg = C.surface0, fg = C.green },
+        c = { bg = "NONE", fg = C.text },
       },
       inactive = {
-        a = { bg = palette.bg0, fg = palette.fg0, gui = "bold" },
-        b = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
-        c = { bg = light and palette.bg1 or palette.bg0, fg = light and palette.base3 or palette.fg0 },
+        a = { bg = "NONE", fg = C.blue },
+        b = { bg = "NONE", fg = C.surface1 },
+        c = { bg = "NONE", fg = C.overlay0 },
       },
     }
 

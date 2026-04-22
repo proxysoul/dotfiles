@@ -1,7 +1,7 @@
 return {
   "saghen/blink.cmp",
   dependencies = {
-    -- "giuxtaposition/blink-cmp-copilot",
+    "giuxtaposition/blink-cmp-copilot",
   },
   opts = {
     -- fuzzy = { implementation = "lua" },
@@ -41,16 +41,16 @@ return {
         "path",
         "snippets",
         "buffer",
-        -- "copilot"
+        "copilot",
       },
       providers = {
         ecolog = { name = "ecolog", module = "ecolog.integrations.cmp.blink_cmp" },
-        -- copilot = {
-        --   name = "copilot",
-        --   module = "blink-cmp-copilot",
-        --   score_offset = 100,
-        --   async = true,
-        -- },
+        copilot = {
+          name = "copilot",
+          module = "blink-cmp-copilot",
+          score_offset = 100,
+          async = true,
+        },
       },
     },
   },

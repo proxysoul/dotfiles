@@ -1,6 +1,7 @@
 return {
   {
     "Tsuzat/NeoSolarized.nvim",
+    enabled = false, -- replaced by catppuccin
     lazy = false,
     priority = 1000,
     config = function()
@@ -32,7 +33,8 @@ return {
         end,
       })
 
-      vim.cmd("colorscheme NeoSolarized")
+      -- disabled so we can use catppuccin
+      -- vim.cmd("colorscheme NeoSolarized")
 
       local colors = require("NeoSolarized.colors").setup({ style = "dark" })
 

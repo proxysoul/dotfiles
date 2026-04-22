@@ -1,24 +1,17 @@
 return {
   "neovim/nvim-lspconfig",
   ---@class PluginLspOpts
-  opts = {
-    servers = {
+  opts = function(_, opts)
+    opts.servers = vim.tbl_deep_extend("force", opts.servers or {}, {
       ["*"] = {
-        {
-          "<leader-ca>",
-          false,
-        },
-        {
-          "<leader-cA>",
-          false,
-        },
+        { "<leader-ca>", false },
+        { "<leader-cA>", false },
       },
-      copilot = {
-        enabled = true,
-      },
-    },
-    inlay_hints = { enabled = false },
-    diagnostics = {
+    })
+
+    opts.inlay_hints = { enabled = false }
+
+    opts.diagnostics = {
       virtual_text = false,
       severity_sort = true,
       float = { border = "rounded", source = "if_many" },
@@ -30,6 +23,6 @@ return {
           [vim.diagnostic.severity.HINT] = "󰌶 ",
         },
       } or {},
-    },
-  },
+    }
+  end,
 }

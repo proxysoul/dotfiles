@@ -1,9 +1,14 @@
-return {
-  "folke/sidekick.nvim",
-  lazy = false,
-  opts = {
-    nes = {
-      enabled = false,
-    },
-  },
-}
+return {}
+-- return {
+--   "folke/sidekick.nvim",
+--   enabled = true,
+--   lazy = false,
+--   opts = {
+--     nes = {
+--       enabled = function(buf)
+--         return false
+--         -- return vim.g.sidekick_nes ~= false and vim.b.sidekick_nes ~= false
+--       end,
+--     },
+--   },
+-- }
