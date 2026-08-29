@@ -1,6 +1,9 @@
 """
-kitty tab bar — proxySoul Coffee theme
-Rounded pill-style tabs with right-aligned status cells.
+kitty tab bar — themed pills.
+Rounded pill-style tabs with right-aligned status cells. The palette is
+derived from the ACTIVE theme's own tab colors (active/inactive tab fg/bg
+from the included proxysoul-*.conf), so switching the theme include restyles
+the whole bar with zero edits here.
 """
 
 import datetime
@@ -24,15 +27,32 @@ LEFT_ROUND = "\ue0b6"   #
 RIGHT_ROUND = "\ue0b4"  # 
 SEPARATOR = "│"
 
-# ── Coffee palette (synced with SoulForge proxysoul-coffee) ──────
-AMBER = "#de7c00"
-ORANGE = "#e65f2a"
-GOLD = "#c8944a"
-DIM = "#2e2010"
-BG_PILL = "#1a1510"
-TEXT = "#e7e7ee"
-TEXT_MUTED = "#5c5a6e"
-TEXT_SECONDARY = "#8e8ca1"
+# ── Theme-derived palette (refreshed each draw from DrawData) ────
+def _scale(color: int, k: float) -> int:
+    r = min(255, round(((color >> 16) & 0xFF) * k))
+    g = min(255, round(((color >> 8) & 0xFF) * k))
+    b = min(255, round((color & 0xFF) * k))
+    return (r << 16) | (g << 8) | b
+
+
+class _Palette:
+    accent = 0xDE7C00        # active tab bg — the theme's brand
+    accent_bright = 0xC8944A
+    accent_dim = 0x9A5600
+    active_fg = 0x000000
+    pill_bg = 0x1A1510       # inactive tab bg
+    text_muted = 0x5C5A6E    # inactive tab fg
+    dim = 0x2E2010           # separators
+
+    @classmethod
+    def sync(cls, draw_data: DrawData) -> None:
+        cls.accent = int(draw_data.active_bg)
+        cls.active_fg = int(draw_data.active_fg)
+        cls.pill_bg = int(draw_data.inactive_bg)
+        cls.text_muted = int(draw_data.inactive_fg)
+        cls.accent_bright = _scale(cls.accent, 1.25)
+        cls.accent_dim = _scale(cls.accent, 0.72)
+        cls.dim = _scale(cls.pill_bg, 1.6)
 
 # ── Folder icons (nerd fonts) ────────────────────────────────────
 FOLDER_ICONS = {
@@ -66,8 +86,10 @@ def _cached(key, fn):
     return val
 
 
-def _rgb(hex_color: str) -> int:
-    return as_rgb(int(to_color(hex_color)))
+def _rgb(color) -> int:
+    if isinstance(color, str):
+        return as_rgb(int(to_color(color)))
+    return as_rgb(color)
 
 
 def _icon_for(name: str) -> str:
@@ -110,16 +132,17 @@ def draw_tab(
         _timer_id = add_timer(_tick, 2.0, True)
 
     try:
+        _Palette.sync(draw_data)
         default_bg = as_rgb(int(draw_data.default_bg))
         title = _tab_title(tab, max_title_length)
         icon = _icon_for(title)
 
         if tab.is_active:
-            fg = _rgb("#000000")
-            bg = _rgb(AMBER)
+            fg = _rgb(_Palette.active_fg)
+            bg = _rgb(_Palette.accent)
         else:
-            fg = _rgb(TEXT_MUTED)
-            bg = _rgb(BG_PILL)
+            fg = _rgb(_Palette.text_muted)
+            bg = _rgb(_Palette.pill_bg)
 
         # spacing between tabs
         if index > 0:
@@ -153,7 +176,7 @@ def draw_tab(
 def _draw_status(draw_data: DrawData, screen: Screen) -> None:
     draw_attributed_string(Formatter.reset, screen)
     default_bg = as_rgb(int(draw_data.default_bg))
-    pill_bg = _rgb(BG_PILL)
+    pill_bg = _rgb(_Palette.pill_bg)
 
     cells = [c for c in [
         _cached("battery", _battery_cell),
@@ -166,7 +189,7 @@ def _draw_status(draw_data: DrawData, screen: Screen) -> None:
 
     resolved = []
     for c in cells:
-        fg = _rgb(c.get("color", TEXT_SECONDARY))
+        fg = _rgb(c.get("color", _Palette.text_muted))
         text = f"{c.get('icon', '')}{c['text']}"
         resolved.append((text, fg))
 
@@ -195,7 +218,7 @@ def _draw_status(draw_data: DrawData, screen: Screen) -> None:
     screen.draw(LEFT_ROUND)
 
     # cells inside the pill
-    sep_fg = _rgb(DIM)
+    sep_fg = _rgb(_Palette.dim)
     for i, (text, fg) in enumerate(resolved):
         if i > 0:
             screen.cursor.fg = sep_fg
@@ -224,29 +247,29 @@ def _battery_cell():
         charging = "charging" in out.lower() and "discharging" not in out.lower()
 
         if charging:
-            return {"icon": "󰢟 ", "color": GOLD, "text": f"{pct}%"}
+            return {"icon": "󰢟 ", "color": _Palette.accent_bright, "text": f"{pct}%"}
         if pct >= 80:
-            return {"icon": "󰢞 ", "color": GOLD, "text": f"{pct}%"}
+            return {"icon": "󰢞 ", "color": _Palette.accent_bright, "text": f"{pct}%"}
         if pct >= 60:
-            return {"icon": "󰢝 ", "color": AMBER, "text": f"{pct}%"}
+            return {"icon": "󰢝 ", "color": _Palette.accent, "text": f"{pct}%"}
         if pct >= 40:
-            return {"icon": "󰢜 ", "color": AMBER, "text": f"{pct}%"}
+            return {"icon": "󰢜 ", "color": _Palette.accent, "text": f"{pct}%"}
         if pct >= 20:
-            return {"icon": "󰢗 ", "color": ORANGE, "text": f"{pct}%"}
-        return {"icon": "󰢘 ", "color": ORANGE, "text": f"{pct}%"}
+            return {"icon": "󰢗 ", "color": _Palette.accent_dim, "text": f"{pct}%"}
+        return {"icon": "󰢘 ", "color": _Palette.accent_dim, "text": f"{pct}%"}
     except Exception:
         return None
 
 
 def _time_cell():
     now = datetime.datetime.now().strftime("%I:%M %p")
-    return {"icon": "󰥔 ", "color": AMBER, "text": now}
+    return {"icon": "󰥔 ", "color": _Palette.accent, "text": now}
 
 
 def _date_cell():
     today = datetime.date.today()
     label = today.strftime("%a %b %d").upper()
-    color = GOLD if today.weekday() >= 5 else TEXT_SECONDARY
+    color = _Palette.accent_bright if today.weekday() >= 5 else _Palette.text_muted
     icon = "󰧓 " if today.weekday() >= 5 else "󰃵 "
     return {"icon": icon, "color": color, "text": label}
 
