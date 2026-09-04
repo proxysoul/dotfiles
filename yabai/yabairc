@@ -41,3 +41,8 @@ yabai -m signal --add event=window_created app="^Arc$" action="~/.scripts/yabai_
 yabai -m signal --add app='^Ghostty$' event=window_created action='yabai -m space --layout bsp'
 yabai -m signal --add app='^Ghostty$' event=window_destroyed action='yabai -m space --layout bsp'
 
+yabai -m rule --add app="^Finder$" manage=off
+
+# Empryo desktop app -> always on desktop 1
+yabai -m rule --add app="^Electron$" title="^Empryo" space=1
+
