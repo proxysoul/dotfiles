@@ -1,6 +1,9 @@
 result
 .direnv
 
+# Ignore app-generated snapshots
+karabiner/automatic_backups/
+
 # Ignore Mac system files
 .DS_Store
 
